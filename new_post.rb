@@ -3,9 +3,10 @@ require_relative 'link.rb'
 require_relative 'memo.rb'
 require_relative 'task.rb'
 
+puts "Notepad, v.2 (SQLite)"
 puts "Что записать?"
 
-choices = Post.post_types
+choices = Post.post_types.keys
 
 choice = -1
 
@@ -17,10 +18,10 @@ until (choice >= 0) and (choice < choices.size) do
   choice = STDIN.gets.chomp.to_i
 end
 
-entry = Post.create(choice)
+entry = Post.create(choices[choice])
 
 entry.read_from_console
 
-entry.save
+id = entry.save_to_db
 
-puts "Запись сохранена."
+puts "Запись сохранена. id = #{id}"
