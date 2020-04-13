@@ -21,15 +21,17 @@ OptionParser.new do |opt|
 
 end.parse!
 
-result = Post.find(options[:id], options[:type], options[:limit])
+if options[:id] != nil
+  result = Post.find_by_id(options[:id])
 
-if result.is_a? Post
   puts "Запись #{result.class.name}, id = #{options[:id]}"
 
   result.to_strings.each do |line|
     puts line
   end
 else
+  result = Post.find_all(options[:type], options[:limit])
+
   print "| id\t| @type\t|  @created_at\t\t\t|  @text \t| @url\t\t| @due_date \t "
 
   result.each do |row|

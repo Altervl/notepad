@@ -12,27 +12,32 @@ class Post
     return post_types[type].new
   end
 
-  def self.find(id, type, limit)
-    db = SQLite3::Database.open(@@SQLITE_DB_FILE)
-
-    if !id.nil?
+  def self.find_by_id(id)
+    begin
+      db = SQLite3::Database.open(@@SQLITE_DB_FILE)
       db.results_as_hash = true
 
       result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
       result = result[0] if result.is_a? Array
 
       db.close
+    rescue SQLite3::SQLException => e
+      abort "Ошибка БД \"#{@@SQLITE_DB_FILE}\": #{e}."
+    end
 
-      if result.empty?
-        puts "id #{id} не найден."
-        return nil
-      else
-        post = create(result['type'])
-        post.load_data(result)
-
-        return post
-      end
+    if result.empty?
+      puts "id #{id} не найден."
+      return nil
     else
+      post = create(result['type'])
+      post.load_data(result)
+      return post
+    end
+  end
+
+  def self.find_all(type, limit)
+    begin
+      db = SQLite3::Database.open(@@SQLITE_DB_FILE)
       db.results_as_hash = false
 
       query = 'SELECT rowid, * FROM posts '
@@ -48,9 +53,11 @@ class Post
 
       statement.close
       db.close
-
-      return result
+    rescue SQLite3::SQLException => e
+      abort "Ошибка БД \"#{@@SQLITE_DB_FILE}\": #{e}."
     end
+
+    return result
   end
 
   def initialize
@@ -82,10 +89,11 @@ class Post
   end
 
   def save_to_db
-    db = SQLite3::Database.open(@@SQLITE_DB_FILE)
-    db.results_as_hash = true
-    db.execute(
-        "INSERT INTO posts (" +
+    begin
+      db = SQLite3::Database.open(@@SQLITE_DB_FILE)
+      db.results_as_hash = true
+      db.execute(
+          "INSERT INTO posts (" +
             # Все поля, перечисленные через запятую
             to_db_hash.keys.join(', ') + ") " +
             " VALUES ( " +
@@ -94,13 +102,16 @@ class Post
             ")",
         # Массив значений хэша, которые будут вставлены в запрос вместо _плейсхолдеров_
         to_db_hash.values
-    )
+      )
 
-    insert_row_id = db.last_insert_row_id
+      insert_row_id = db.last_insert_row_id
 
-    db.close
+      db.close
+    rescue SQLite3::SQLException => e
+      abort "Ошибка БД \"#{@@SQLITE_DB_FILE}\": #{e}."
+    end
 
-    return  insert_row_id
+    return insert_row_id
   end
 
   def to_db_hash
